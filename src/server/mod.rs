@@ -1,17 +1,17 @@
+mod handlers;
+
 use std::{
     io::{Read, Write},
     net::TcpStream,
 };
 
 use crate::{
-    common::{request::{self, KafRequest}, response::KafResponse, DecodeFromBytes},
-    StrError,
+    common::{
+        request::{self, KafRequest},
+        response::KafResponse,
+        DecodeFromBytes, EncodeToBytes,
+    }, server::handlers::handle_request, StrError
 };
-
-// going to be main logic
-fn handle_request(request: KafRequest) -> Result<KafResponse, String> {
-    Ok(KafResponse::new(4, request.header.correlation_id))
-}
 
 pub fn handle_stream(mut stream: TcpStream) -> Result<(), std::io::Error> {
     // Read the 4-byte message length prefix
@@ -25,7 +25,7 @@ pub fn handle_stream(mut stream: TcpStream) -> Result<(), std::io::Error> {
     let mut buf = vec![0u8; message_len];
     stream.read_exact(&mut buf)?;
 
-    println!("buf: {:#?}", buf);
+    println!("buf: {:x?}{:x?}", message_len.to_be_bytes(), buf);
 
     let mut offset = 0;
     let request = KafRequest::read_from_u8(&buf, &mut offset).expect("failed to read request");
@@ -33,10 +33,10 @@ pub fn handle_stream(mut stream: TcpStream) -> Result<(), std::io::Error> {
 
     // CALL: handle_request
     let response = handle_request(request).expect("failed to get a response");
-    let response_vec = response.to_vec();
+    let response_bytes = response.write_to_bytes();
 
-    println!("writing response: ${:#?}", response_vec);
-    stream.write_all(&response_vec)?;
+    println!("writing response: ${:x?}", response_bytes);
+    stream.write_all(&response_bytes)?;
 
     Ok(())
 }

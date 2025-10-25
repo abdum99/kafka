@@ -1,8 +1,8 @@
-use crate::{common::{types::{self, NullableString}, DecodeFromBytes, EncodingError}, utils::parse_primitive_types::*};
+use crate::{common::{api::api_key::KafApiKey, types::{self, NullableString}, DecodeFromBytes, EncodingError}, utils::parse_primitive_types::*};
 
 #[derive(Debug)]
 pub struct KafRequestHeader {
-    pub request_api_key: i16,           // INT16 (big-endian)
+    pub request_api_key: KafApiKey,           // INT16 (big-endian)
     pub request_api_version: i16,       // INT16 (big-endian)
     pub correlation_id: i32,            // INT32 (big-endian)
     pub client_id: Option<String>,      // NULLABLE_STRING
@@ -12,7 +12,7 @@ pub struct KafRequestHeader {
 impl DecodeFromBytes for KafRequestHeader {
     // Parse a request header from `input`, returning the header and the number of bytes consumed.
     fn read_from_u8(input: &[u8], mut offset: &mut usize) -> Result<KafRequestHeader, EncodingError> {
-        let request_api_key = read_i16_be(input, &mut offset)?;
+        let request_api_key = read_i16_be(input, &mut offset)?.into();
         let request_api_version = read_i16_be(input, &mut offset)?;
         let correlation_id = read_i32_be(input, &mut offset)?;
         let client_id = read_nullable_string(input, &mut offset)?;

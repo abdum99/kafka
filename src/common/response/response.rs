@@ -1,40 +1,54 @@
-use crate::common::EncodeToBytes;
+use crate::common::{request::KafRequestHeader, response::response_body::KafResponseBody, EncodeToBytes};
 
-#[derive(Debug)]
-pub struct KafHeader {
+#[derive(Debug, Default)]
+pub struct KafResponseHeader {
     pub correlation_id: i32,
 }
 
-impl EncodeToBytes for KafHeader {
+impl KafResponseHeader {
+    pub fn from_request_header(request_header: KafRequestHeader) -> KafResponseHeader {
+        KafResponseHeader { 
+            correlation_id: request_header.correlation_id,
+        }
+    }
+}
+
+impl EncodeToBytes for KafResponseHeader {
     fn write_to_bytes(&self) -> Vec<u8> {
         self.correlation_id.write_to_bytes()
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct KafResponse {
-    pub message_size: i32,
-    pub header: KafHeader,
+    pub header: KafResponseHeader,
+    pub body: KafResponseBody,
 }
 
 impl KafResponse {
-    pub fn new(message_size: i32, correlation_id: i32) -> KafResponse {
+    pub fn new(header: KafResponseHeader, body: KafResponseBody) -> KafResponse {
         KafResponse {
-            message_size,
-            header: KafHeader {
-                correlation_id,
-            },
+            header,
+            body,
         }
     }
+}
 
-    pub fn to_vec(&self) -> Vec<u8> {
-        let mut res = vec![];
+impl EncodeToBytes for KafResponse {
+    fn write_to_bytes(&self) -> Vec<u8> {
+        // start with zero size, will be filled after serializing header and body
+        let mut res: Vec<u8> = vec![]; 
 
-        res.extend(self.message_size.write_to_bytes());
+        let header_bytes = self.header.write_to_bytes();
+        let body_bytes = self.body.write_to_bytes();
 
-        res.extend(self.header.write_to_bytes());
+        // + 4 bytes for total_length
+        let total_length = header_bytes.len() + body_bytes.len() + 4;
+
+        res.extend(total_length.to_be_bytes());
+        res.extend(header_bytes);
+        res.extend(body_bytes);
 
         res
     }
 }
-
