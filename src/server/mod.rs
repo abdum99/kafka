@@ -4,13 +4,13 @@ use std::{
 };
 
 use crate::{
-    common::{request::{self, KafRequest}, response::Response},
-    utils::parse_primitive_types::ReadFromU8, StrError,
+    common::{request::{self, KafRequest}, response::KafResponse, DecodeFromBytes},
+    StrError,
 };
 
 // going to be main logic
-fn handle_request(request: KafRequest) -> Result<Response, String> {
-    Ok(Response::new(4, request.header.correlation_id))
+fn handle_request(request: KafRequest) -> Result<KafResponse, String> {
+    Ok(KafResponse::new(4, request.header.correlation_id))
 }
 
 pub fn handle_stream(mut stream: TcpStream) -> Result<(), std::io::Error> {

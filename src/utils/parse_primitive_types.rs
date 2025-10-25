@@ -1,46 +1,29 @@
 use std::convert::TryFrom;
 use std::str;
 
-#[derive(thiserror::Error, Debug)]
-pub enum ParseError {
-    #[error("unexpected end of input")]
-    Eof,
-    #[error("utf-8 error: {0}")]
-    Utf8(#[from] std::str::Utf8Error),
-    #[error("varint too long")]
-    VarIntTooLong,
-    #[error("varint overflow")]
-    VarIntOverflow,
-    #[error("invalid length: {0}")]
-    InvalidLength(i64),
-}
+use crate::common::EncodingError;
 
-pub trait ReadFromU8 {
-    fn read_from_u8(input: &[u8], offset: &mut usize) -> Result<Self, ParseError>
-        where Self: Sized;
-}
-
-pub fn read_exact<'a>(input: &'a [u8], off: &mut usize, n: usize) -> Result<&'a [u8], ParseError> {
+pub fn read_exact<'a>(input: &'a [u8], off: &mut usize, n: usize) -> Result<&'a [u8], EncodingError> {
     if input.len().saturating_sub(*off) < n {
-        return Err(ParseError::Eof);
+        return Err(EncodingError::Eof);
     }
     let s = &input[*off..*off + n];
     *off += n;
     Ok(s)
 }
 
-pub fn read_i16_be(input: &[u8], off: &mut usize) -> Result<i16, ParseError> {
+pub fn read_i16_be(input: &[u8], off: &mut usize) -> Result<i16, EncodingError> {
     let b = read_exact(input, off, 2)?;
     Ok(i16::from_be_bytes([b[0], b[1]]))
 }
 
-pub fn read_i32_be(input: &[u8], off: &mut usize) -> Result<i32, ParseError> {
+pub fn read_i32_be(input: &[u8], off: &mut usize) -> Result<i32, EncodingError> {
     let b = read_exact(input, off, 4)?;
     Ok(i32::from_be_bytes([b[0], b[1], b[2], b[3]]))
 }
 
 /// Kafka UNSIGNED_VARINT (LEB128-like, 7 bits per byte, MSB=continue)
-pub fn read_unsigned_varint(input: &[u8], off: &mut usize) -> Result<u32, ParseError> {
+pub fn read_unsigned_varint(input: &[u8], off: &mut usize) -> Result<u32, EncodingError> {
     let mut x: u64 = 0;
     let mut shift = 0u32;
 
@@ -52,7 +35,7 @@ pub fn read_unsigned_varint(input: &[u8], off: &mut usize) -> Result<u32, ParseE
         x |= val << shift;
         if (b & 0x80) == 0 {
             if x > u32::MAX as u64 {
-                return Err(ParseError::VarIntOverflow);
+                return Err(EncodingError::VarIntOverflow);
             }
             return Ok(x as u32);
         }
@@ -60,22 +43,22 @@ pub fn read_unsigned_varint(input: &[u8], off: &mut usize) -> Result<u32, ParseE
 
         if i == 4 {
             // 5th byte had MSB=1 -> too long for u32
-            return Err(ParseError::VarIntTooLong);
+            return Err(EncodingError::VarIntTooLong);
         }
     }
-    Err(ParseError::VarIntTooLong)
+    Err(EncodingError::VarIntTooLong)
 }
 
 /// NULLABLE_STRING: INT16 length; -1 => null; else length bytes UTF-8
-pub fn read_nullable_string(input: &[u8], off: &mut usize) -> Result<Option<String>, ParseError> {
+pub fn read_nullable_string(input: &[u8], off: &mut usize) -> Result<Option<String>, EncodingError> {
     let len = read_i16_be(input, off)? as i32;
     if len == -1 {
         return Ok(None);
     }
     if len < 0 {
-        return Err(ParseError::InvalidLength(len as i64));
+        return Err(EncodingError::InvalidLength(len as i64));
     }
-    let len = usize::try_from(len).map_err(|_| ParseError::InvalidLength(len as i64))?;
+    let len = usize::try_from(len).map_err(|_| EncodingError::InvalidLength(len as i64))?;
     let bytes = read_exact(input, off, len)?;
     let s = str::from_utf8(bytes)?.to_string();
     Ok(Some(s))
@@ -98,7 +81,7 @@ pub struct TaggedField {
 pub fn read_compact_tag_buffer(
     input: &[u8],
     off: &mut usize,
-) -> Result<Option<Vec<TaggedField>>, ParseError> {
+) -> Result<Option<Vec<TaggedField>>, EncodingError> {
     let len_plus_one = read_unsigned_varint(input, &mut *off)?;
     if len_plus_one == 0 {
         return Ok(None); // null array
@@ -109,7 +92,7 @@ pub fn read_compact_tag_buffer(
         let tag = read_unsigned_varint(input, off)?;
         let size = read_unsigned_varint(input, off)?;
         let size_usize =
-            usize::try_from(size).map_err(|_| ParseError::InvalidLength(size as i64))?;
+            usize::try_from(size).map_err(|_| EncodingError::InvalidLength(size as i64))?;
         let data = read_exact(input, off, size_usize)?.to_vec();
         out.push(TaggedField { tag, data });
     }
