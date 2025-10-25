@@ -43,7 +43,7 @@ impl EncodeToBytes for KafResponse {
         let body_bytes = self.body.encode_to_bytes();
 
         // + 4 bytes for total_length
-        let total_length: i32 = (header_bytes.len() + body_bytes.len() + 4).try_into().unwrap_or(-1i32);
+        let total_length: i32 = (header_bytes.len() + body_bytes.len()).try_into().unwrap_or(-1i32);
 
         res.extend(total_length.to_be_bytes());
         res.extend(header_bytes);

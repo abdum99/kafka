@@ -1,8 +1,8 @@
-use crate::{common::{api::api_key::KafApiKey, types::self, DecodeFromBytes, EncodingError}, utils::parse_primitive_types::*};
+use crate::{common::{api::api_key::KafApiKey, DecodeFromBytes, EncodingError}, utils::parse_primitive_types::*};
 
 #[derive(Debug)]
 pub struct KafRequestHeader {
-    pub request_api_key: KafApiKey,           // INT16 (big-endian)
+    pub request_api_key: KafApiKey,     // INT16 (big-endian)
     pub request_api_version: i16,       // INT16 (big-endian)
     pub correlation_id: i32,            // INT32 (big-endian)
     pub client_id: Option<String>,      // NULLABLE_STRING

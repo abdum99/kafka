@@ -1,6 +1,7 @@
 use crate::{StrError};
 
 pub mod api;
+pub mod config;
 pub mod error;
 pub mod response;
 pub mod request;

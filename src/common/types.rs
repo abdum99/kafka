@@ -48,8 +48,15 @@ impl EncodeToBytes for UnsignedVarInt {
     }
 }
 
+#[derive(Debug)]
 pub struct CompactArray<T> {
-    items: Some(Vec<T>), // option cause it can be null with -1 not 0
+    pub items: Option<Vec<T>>, // option cause it can be null with -1 not 0
+}
+
+impl<T> Default for CompactArray<T> {
+    fn default() -> Self {
+        CompactArray { items: None }
+    }
 }
 
 
@@ -61,20 +68,23 @@ impl<T> EncodeToBytes for CompactArray<T>
     where T: EncodeToBytes
 {
     fn encode_to_bytes(&self) -> Vec<u8> {
+        let mut res: Vec<u8> = vec![];
+        match &self.items {
+            None => {
+                res.extend(UnsignedVarInt { val: 0 }.encode_to_bytes());
+            },
+            Some(items) => {
+                // write N + 1 as varint
+                let len_field = (items.len() as u32) + 1;
+                res.extend(UnsignedVarInt { val: len_field }.encode_to_bytes());
 
-    let mut res: Vec<u8> = vec![];
-    match &self.items {
-        None => {
-            res.extend(UnsignedVarInt { val: 0 }.encode_to_bytes());
-        }
-        Some(items) => {
-            // write N + 1 as varint
-            let len_field = (items.len() as u32) + 1;
-            res.extend(UnsignedVarInt { val: len_field }.encode_to_bytes());
-
-            for item in items {
-                res.extend(item.encode_to_bytes());
+                for item in items {
+                    res.extend(item.encode_to_bytes());
+                }
             }
         }
+
+        println!("printing compacy array: {:#?}", res);
+        res
     }
 }

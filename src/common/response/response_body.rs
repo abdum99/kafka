@@ -1,4 +1,4 @@
-use crate::common::EncodeToBytes;
+use crate::common::{api::{api_key, api_version_entry::ApiVersionEntry}, error::error_code, types::CompactArray, EncodeToBytes};
 
 // TODO: probably best as a builder but for later
 #[derive(Debug)]
@@ -44,14 +44,30 @@ impl EncodeToBytes for UnsupportedResponse {
 
 #[derive(Debug, Default)]
 pub struct ApiVersionsResponse {
-    error_code: i16,
-    throttle_time: i32,
-    tagged_buffer: u8, // I honestly don't know
+    pub error_code: i16,
+    // ApiVersionEntry is maintained statically
+    // TODO: is it worth making KafResponse generic over lifetimes
+    pub api_keys: CompactArray<&'static ApiVersionEntry>,
+    pub throttle_time: i32,
+    pub tagged_buffer: u8, // I honestly don't know
 }
 
 impl ApiVersionsResponse {
+    pub fn new(
+        api_keys: CompactArray<&'static ApiVersionEntry>,
+    ) -> ApiVersionsResponse {
+        ApiVersionsResponse {
+            error_code: error_code::NONE,
+            api_keys,
+            ..Default::default()
+        }
+    }
+
     pub fn with_error_code(error_code: i16) -> ApiVersionsResponse {
-        ApiVersionsResponse { error_code, ..Default::default() }
+        ApiVersionsResponse {
+            error_code,
+            ..Default::default()
+        }
     }
 }
 
@@ -60,6 +76,7 @@ impl EncodeToBytes for ApiVersionsResponse {
         let mut res: Vec<u8> = vec![];
 
         res.extend(self.error_code.encode_to_bytes());
+        res.extend(self.api_keys.encode_to_bytes());
         res.extend(self.throttle_time.encode_to_bytes());
         res.push(self.tagged_buffer);
 

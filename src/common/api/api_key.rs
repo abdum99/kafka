@@ -2,7 +2,7 @@ use num_enum::{FromPrimitive, IntoPrimitive};
 
 use crate::common::EncodeToBytes;
 
-#[derive(FromPrimitive, IntoPrimitive, Clone, Debug)]
+#[derive(FromPrimitive, IntoPrimitive, Clone, Debug, std::cmp::PartialEq, std::cmp::Eq, Hash)]
 #[repr(i16)]
 pub enum KafApiKey {
     // not defined by Kafka API but for my sanity

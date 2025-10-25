@@ -109,24 +109,6 @@ pub fn encode_unsigned_varint(mut input: u32) -> Vec<u8> {
     out
 }
 
-pub fn encode_compact_array<T: EncodeToBytes>(arr: Option<&[T]>) -> Vec<u8> {
-    let mut res: Vec<u8> = vec![];
-    match arr {
-        None => {
-            res.extend(UnsignedVarInt { val: 0 }.encode_to_bytes());
-        }
-        Some(items) => {
-            let len_field = (items.len() as u32) + 1;
-            UnsignedVarInt { val: len_field }.encode_into(out);
-            for item in items {
-                item.encode(out);
-            }
-        }
-    }
-
-    res
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
