@@ -16,11 +16,11 @@ impl Default for KafResponseBody {
 // TODO: I should make a macro for this impl once it grows
 //
 impl EncodeToBytes for KafResponseBody {
-    fn write_to_bytes(&self) -> Vec<u8> {
+    fn encode_to_bytes(&self) -> Vec<u8> {
         use self::KafResponseBody::*;
         match self {
-            ApiVersions(res) => res.write_to_bytes(),
-            _ => UnsupportedResponse::with_error_code(-1).write_to_bytes(),
+            ApiVersions(res) => res.encode_to_bytes(),
+            _ => UnsupportedResponse::with_error_code(-1).encode_to_bytes(),
         }
     }
 }
@@ -37,7 +37,7 @@ impl UnsupportedResponse {
 }
 
 impl EncodeToBytes for UnsupportedResponse {
-    fn write_to_bytes(&self) -> Vec<u8> {
+    fn encode_to_bytes(&self) -> Vec<u8> {
         self.error_code.to_be_bytes().to_vec()
     }
 }
@@ -45,16 +45,24 @@ impl EncodeToBytes for UnsupportedResponse {
 #[derive(Debug, Default)]
 pub struct ApiVersionsResponse {
     error_code: i16,
+    throttle_time: i32,
+    tagged_buffer: u8, // I honestly don't know
 }
 
 impl ApiVersionsResponse {
     pub fn with_error_code(error_code: i16) -> ApiVersionsResponse {
-        ApiVersionsResponse { error_code }
+        ApiVersionsResponse { error_code, ..Default::default() }
     }
 }
 
 impl EncodeToBytes for ApiVersionsResponse {
-    fn write_to_bytes(&self) -> Vec<u8> {
-        self.error_code.to_be_bytes().to_vec()
+    fn encode_to_bytes(&self) -> Vec<u8> {
+        let mut res: Vec<u8> = vec![];
+
+        res.extend(self.error_code.encode_to_bytes());
+        res.extend(self.throttle_time.encode_to_bytes());
+        res.push(self.tagged_buffer);
+
+        res
     }
 }

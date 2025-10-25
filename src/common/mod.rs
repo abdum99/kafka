@@ -27,5 +27,5 @@ pub trait DecodeFromBytes {
 }
 
 pub trait EncodeToBytes {
-    fn write_to_bytes(&self) -> Vec<u8>;
+    fn encode_to_bytes(&self) -> Vec<u8>;
 }

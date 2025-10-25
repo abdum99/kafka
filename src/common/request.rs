@@ -1,4 +1,4 @@
-use crate::{common::{api::api_key::KafApiKey, types::{self, NullableString}, DecodeFromBytes, EncodingError}, utils::parse_primitive_types::*};
+use crate::{common::{api::api_key::KafApiKey, types::self, DecodeFromBytes, EncodingError}, utils::parse_primitive_types::*};
 
 #[derive(Debug)]
 pub struct KafRequestHeader {

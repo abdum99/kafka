@@ -1,7 +1,7 @@
 use std::convert::TryFrom;
 use std::str;
 
-use crate::common::EncodingError;
+use crate::common::{types::UnsignedVarInt, EncodeToBytes, EncodingError};
 
 pub fn read_exact<'a>(input: &'a [u8], off: &mut usize, n: usize) -> Result<&'a [u8], EncodingError> {
     if input.len().saturating_sub(*off) < n {
@@ -97,4 +97,55 @@ pub fn read_compact_tag_buffer(
         out.push(TaggedField { tag, data });
     }
     Ok(Some(out))
+}
+
+pub fn encode_unsigned_varint(mut input: u32) -> Vec<u8> {
+    let mut out = Vec::with_capacity(5); // u32 fits in ≤5 bytes
+    while input >= 0x80 {
+        out.push(((input as u8) & 0x7F) | 0x80); // set continuation bit
+        input >>= 7;
+    }
+    out.push(input as u8); // last byte without continuation
+    out
+}
+
+pub fn encode_compact_array<T: EncodeToBytes>(arr: Option<&[T]>) -> Vec<u8> {
+    let mut res: Vec<u8> = vec![];
+    match arr {
+        None => {
+            res.extend(UnsignedVarInt { val: 0 }.encode_to_bytes());
+        }
+        Some(items) => {
+            let len_field = (items.len() as u32) + 1;
+            UnsignedVarInt { val: len_field }.encode_into(out);
+            for item in items {
+                item.encode(out);
+            }
+        }
+    }
+
+    res
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn encodes_examples() {
+        // 0 -> [0x00]
+        assert_eq!(encode_unsigned_varint(0), vec![0x00]);
+
+        // 1 -> [0x01]
+        assert_eq!(encode_unsigned_varint(1), vec![0x01]);
+
+        // 127 -> [0x7F]
+        assert_eq!(encode_unsigned_varint(127), vec![0x7F]);
+
+        // 128 -> [0x80, 0x01]
+        assert_eq!(encode_unsigned_varint(128), vec![0x80, 0x01]);
+
+        // 300 -> [0xAC, 0x02]
+        assert_eq!(encode_unsigned_varint(300), vec![0xAC, 0x02]);
+    }
 }

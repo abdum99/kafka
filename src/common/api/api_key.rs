@@ -1,5 +1,7 @@
 use num_enum::{FromPrimitive, IntoPrimitive};
 
+use crate::common::EncodeToBytes;
+
 #[derive(FromPrimitive, IntoPrimitive, Clone, Debug)]
 #[repr(i16)]
 pub enum KafApiKey {

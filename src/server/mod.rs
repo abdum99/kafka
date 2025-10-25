@@ -33,7 +33,8 @@ pub fn handle_stream(mut stream: TcpStream) -> Result<(), std::io::Error> {
 
     // CALL: handle_request
     let response = handle_request(request).expect("failed to get a response");
-    let response_bytes = response.write_to_bytes();
+    println!("sending response: {:#?}", response);
+    let response_bytes = response.encode_to_bytes();
 
     println!("writing response: ${:x?}", response_bytes);
     stream.write_all(&response_bytes)?;

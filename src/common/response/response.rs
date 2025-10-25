@@ -14,8 +14,8 @@ impl KafResponseHeader {
 }
 
 impl EncodeToBytes for KafResponseHeader {
-    fn write_to_bytes(&self) -> Vec<u8> {
-        self.correlation_id.write_to_bytes()
+    fn encode_to_bytes(&self) -> Vec<u8> {
+        self.correlation_id.encode_to_bytes()
     }
 }
 
@@ -35,12 +35,12 @@ impl KafResponse {
 }
 
 impl EncodeToBytes for KafResponse {
-    fn write_to_bytes(&self) -> Vec<u8> {
+    fn encode_to_bytes(&self) -> Vec<u8> {
         // start with zero size, will be filled after serializing header and body
         let mut res: Vec<u8> = vec![]; 
 
-        let header_bytes = self.header.write_to_bytes();
-        let body_bytes = self.body.write_to_bytes();
+        let header_bytes = self.header.encode_to_bytes();
+        let body_bytes = self.body.encode_to_bytes();
 
         // + 4 bytes for total_length
         let total_length: i32 = (header_bytes.len() + body_bytes.len() + 4).try_into().unwrap_or(-1i32);
