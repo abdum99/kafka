@@ -1,8 +1,9 @@
 use crate::{StrError};
 
+pub mod api;
+pub mod error;
 pub mod response;
 pub mod request;
-pub mod api_key;
 pub mod types;
 
 #[derive(thiserror::Error, Debug)]
