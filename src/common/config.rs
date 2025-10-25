@@ -9,6 +9,6 @@ lazy_static! {
     pub static ref SUPPORTED_API: HashMap<KafApiKey, ApiVersionEntry> = HashMap::from([
         // (KafApiKey::Fetch, ApiVersionEntry::new(KafApiKey::Fetch, 0, 17)),
         (KafApiKey::ApiVersions, ApiVersionEntry::new(KafApiKey::ApiVersions, 0, 4)),
-        // (KafApiKey::DescribeTopicPartitions, ApiVersionEntry::new(KafApiKey::DescribeTopicPartitions, 0, 0)),
+        (KafApiKey::DescribeTopicPartitions, ApiVersionEntry::new(KafApiKey::DescribeTopicPartitions, 0, 0)),
     ]);
 }
