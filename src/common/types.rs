@@ -54,59 +54,57 @@ impl EncodeToBytes for Option<String> {
     }
 }
 
-impl<const L: usize> EncodeToBytes for [u8; L] {
-    fn encode_to_bytes(&self) -> Vec<u8> {
-        let mut res = vec![];
-        for i in 0..L {
-            res.push(self[i].to_be());
-        }
-        res
-    }
-}
-
 #[derive(Debug)]
-pub struct UnsignedVarInt {
-    pub val: u32, // TODO: This shouldn't be u32, it should u64 or [u8] if actually unbounded
-}
+// TODO: This shouldn't be u32, it should u64 or [u8] if actually unbounded
+pub struct UnsignedVarInt(pub u32);
 
 impl DecodeFromBytes for UnsignedVarInt {
     fn read_from_u8(
         input: &[u8],
         off: &mut usize,
     ) -> Result<UnsignedVarInt, EncodingError> {
-        Ok(UnsignedVarInt { val: read_unsigned_varint(input, off)? })
+        Ok(UnsignedVarInt(read_unsigned_varint(input, off)?))
     }
 }
 
 impl EncodeToBytes for UnsignedVarInt {
     fn encode_to_bytes(&self) -> Vec<u8> {
-        encode_unsigned_varint(self.val)
+        encode_unsigned_varint(self.0)
     }
 }
 
 
-#[derive(Debug)]
-pub struct CompactString {
-    pub val: String,
-}
+#[derive(Debug, Default, Clone)]
+pub struct CompactString(pub String);
 
 impl DecodeFromBytes for CompactString {
     fn read_from_u8(input: &[u8], offset: &mut usize) -> Result<Self, EncodingError> {
         let length: u32 = read_unsigned_varint(input, offset)?;
-        Ok(CompactString {
-            val: read_string_exact(input, offset, length - 1)?, // encoded as N + 1
-        })
+        Ok(CompactString(
+            read_string_exact(input, offset, length - 1)?, // encoded as N + 1
+        ))
     }
 }
 
-#[derive(Debug)]
-pub struct CompactArray<T> {
-    pub items: Option<Vec<T>>, // option cause it can be null with -1 not 0
+impl EncodeToBytes for CompactString {
+    fn encode_to_bytes(&self) -> Vec<u8> {
+        let mut res: Vec<u8> = vec![];
+        let bytes = self.0.as_bytes().to_vec();
+        res.extend(UnsignedVarInt(bytes.len() as u32 + 1).encode_to_bytes());
+        res.extend(bytes);
+
+        res
+    }
 }
+
+
+// option cause it can be null with -1 not 0
+#[derive(Debug, Clone)]
+pub struct CompactArray<T>(pub Option<Vec<T>>); 
 
 impl<T> Default for CompactArray<T> {
     fn default() -> Self {
-        CompactArray { items: None }
+        CompactArray(None)
     }
 }
 
@@ -120,14 +118,14 @@ impl<T> EncodeToBytes for CompactArray<T>
 {
     fn encode_to_bytes(&self) -> Vec<u8> {
         let mut res: Vec<u8> = vec![];
-        match &self.items {
+        match &self.0 {
             None => {
-                res.extend(UnsignedVarInt { val: 0 }.encode_to_bytes());
+                res.extend(UnsignedVarInt(0).encode_to_bytes());
             },
             Some(items) => {
                 // write N + 1 as varint
                 let len_field = (items.len() as u32) + 1;
-                res.extend(UnsignedVarInt { val: len_field }.encode_to_bytes());
+                res.extend(UnsignedVarInt(len_field).encode_to_bytes());
 
                 for item in items {
                     res.extend(item.encode_to_bytes());
@@ -135,7 +133,7 @@ impl<T> EncodeToBytes for CompactArray<T>
             }
         }
 
-        println!("printing compacy array: {:#?}", res);
+        println!("printing compact array: {:#?}", res);
         res
     }
 }
@@ -144,10 +142,10 @@ impl<T> DecodeFromBytes for CompactArray<T>
     where T: DecodeFromBytes
 {
     fn read_from_u8(input: &[u8], offset: &mut usize) -> Result<Self, EncodingError> {
-        let length = UnsignedVarInt::read_from_u8(input, offset)?.val;
+        let length = UnsignedVarInt::read_from_u8(input, offset)?.0;
 
         if length == 0 {
-            return Ok(CompactArray { items: None });
+            return Ok(CompactArray(None));
         }
 
         let mut items_arr: Vec<T> = vec![];
@@ -156,9 +154,7 @@ impl<T> DecodeFromBytes for CompactArray<T>
             items_arr.push(T::read_from_u8(input, offset)?);
         }
 
-        Ok(CompactArray {
-            items: Some(items_arr)
-        })
+        Ok(CompactArray(Some(items_arr)))
     }
 }
 

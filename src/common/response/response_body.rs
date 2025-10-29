@@ -21,6 +21,7 @@ impl EncodeToBytes for KafResponseBody {
         use self::KafResponseBody::*;
         match self {
             ApiVersions(res) => res.encode_to_bytes(),
+            DescribeTopicPartitions(res) => res.encode_to_bytes(),
             _ => UnsupportedResponse::with_error_code(-1).encode_to_bytes(),
         }
     }

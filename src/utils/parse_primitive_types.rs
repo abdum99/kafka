@@ -77,7 +77,7 @@ pub fn read_nullable_string(input: &[u8], off: &mut usize) -> Result<Option<Stri
 }
 
 /* -------- COMPACT_ARRAY[TAGGED_FIELD] helpers ---------- */
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TaggedField {
     pub tag: u32,
     pub data: Vec<u8>,

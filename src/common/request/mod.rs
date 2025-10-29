@@ -2,11 +2,11 @@ pub mod request;
 pub mod describe_topic_partitions;
 
 use crate::{
-    common::{api::api_key::KafApiKey, DecodeFromBytes, EncodingError},
+    common::{api::api_key::KafApiKey, request::{describe_topic_partitions::DescribeTopicPartitionsBody, request::KafRequestBody}, DecodeFromBytes, EncodingError},
     utils::parse_primitive_types::*,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct KafRequestHeader {
     pub request_api_key: KafApiKey,     // INT16 (big-endian)
     pub request_api_version: i16,       // INT16 (big-endian)
@@ -39,16 +39,28 @@ impl DecodeFromBytes for KafRequestHeader {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct KafRequest {
     pub header: KafRequestHeader,
+    pub body: KafRequestBody,
 }
 
 impl DecodeFromBytes for KafRequest {
     fn read_from_u8(input: &[u8], mut offset: &mut usize) -> Result<KafRequest, EncodingError> {
+        use KafRequestBody::*;
         let header = KafRequestHeader::read_from_u8(input, &mut offset).unwrap();
 
-        Ok(KafRequest { header })
+        let body = match header.request_api_key {
+            KafApiKey::DescribeTopicPartitions => DescribeTopicPartitions(
+                DescribeTopicPartitionsBody::read_from_u8(input, offset)?
+            ),
+            _ => Empty,
+        };
+
+        Ok(KafRequest {
+            header,
+            body,
+        })
     }
 }
 
@@ -90,7 +102,7 @@ mod tests {
         let mut offset = 0;
         let hdr = KafRequestHeader::read_from_u8(&buf, &mut offset).unwrap();
         assert_eq!(offset, buf.len());
-        assert_eq!(hdr.request_api_key, 1);
+        assert_eq!(hdr.request_api_key, KafApiKey::Fetch);
         assert_eq!(hdr.request_api_version, 2);
         assert_eq!(hdr.correlation_id, 3);
         assert_eq!(hdr.client_id.as_deref(), Some("abc"));
