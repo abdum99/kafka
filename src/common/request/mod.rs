@@ -1,3 +1,6 @@
+pub mod request;
+
+
 use crate::{common::{api::api_key::KafApiKey, DecodeFromBytes, EncodingError}, utils::parse_primitive_types::*};
 
 #[derive(Debug)]

@@ -1,5 +1,18 @@
 use crate::{common::{EncodeToBytes, EncodingError}, utils::parse_primitive_types::{encode_unsigned_varint, read_unsigned_varint}, StrError};
 
+// TODO: @abdu
+// For this I should write ser::Serializer, call KafWireSerializer
+// Then create a few KafPrimitiveTypes: [UnsignedVarInt, CompactArray, ...]
+// then implement Serialize for each KafPrimitiveTypes
+// And produce the output as bytes, then all serializer.serialize_bytes()
+// (even better you wouldn't hardcode serializing to bytes,
+//  instead you serialize to some intermediary that encapsulates the meaning
+//  e.g. for a CompactArray of value null it produces -1,
+//  but for a single element array it produces (N + 1, element)
+//  but there are some quirks to figure out there
+//  and enums might be helpful
+//  )
+
 impl EncodeToBytes for i16 {
     fn encode_to_bytes(&self) -> Vec<u8> {
         self.to_be_bytes().to_vec()
