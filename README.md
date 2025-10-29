@@ -1,4 +1,4 @@
-Writing my own implementation of Kafka cause I'm bored and want to become a kafka expert
+Writing my own implementation of some Kafka stuff cause I'm bored and want to become a kafka expert
 <br/><br/>
 Plan to implement a few fun things:
 - Logs, partitions, and segments
