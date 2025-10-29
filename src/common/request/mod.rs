@@ -1,7 +1,10 @@
 pub mod request;
+pub mod describe_topic_partitions;
 
-
-use crate::{common::{api::api_key::KafApiKey, DecodeFromBytes, EncodingError}, utils::parse_primitive_types::*};
+use crate::{
+    common::{api::api_key::KafApiKey, DecodeFromBytes, EncodingError},
+    utils::parse_primitive_types::*,
+};
 
 #[derive(Debug)]
 pub struct KafRequestHeader {
@@ -14,7 +17,10 @@ pub struct KafRequestHeader {
 
 impl DecodeFromBytes for KafRequestHeader {
     // Parse a request header from `input`, returning the header and the number of bytes consumed.
-    fn read_from_u8(input: &[u8], mut offset: &mut usize) -> Result<KafRequestHeader, EncodingError> {
+    fn read_from_u8(
+        input: &[u8],
+        mut offset: &mut usize,
+    ) -> Result<KafRequestHeader, EncodingError> {
         let request_api_key = read_i16_be(input, &mut offset)?.into();
         let request_api_version = read_i16_be(input, &mut offset)?;
         let correlation_id = read_i32_be(input, &mut offset)?;
@@ -24,13 +30,12 @@ impl DecodeFromBytes for KafRequestHeader {
         let tags = read_compact_tag_buffer(input, &mut offset)?;
 
         Ok(KafRequestHeader {
-                request_api_key,
-                request_api_version,
-                correlation_id,
-                client_id,
-                tags,
-            },
-        )
+            request_api_key,
+            request_api_version,
+            correlation_id,
+            client_id,
+            tags,
+        })
     }
 }
 
@@ -43,9 +48,7 @@ impl DecodeFromBytes for KafRequest {
     fn read_from_u8(input: &[u8], mut offset: &mut usize) -> Result<KafRequest, EncodingError> {
         let header = KafRequestHeader::read_from_u8(input, &mut offset).unwrap();
 
-        Ok(KafRequest {
-            header,
-        })
+        Ok(KafRequest { header })
     }
 }
 
@@ -90,7 +93,7 @@ mod tests {
         assert_eq!(hdr.request_api_key, 1);
         assert_eq!(hdr.request_api_version, 2);
         assert_eq!(hdr.correlation_id, 3);
-        assert_eq!(hdr.client_id.as_deref(), Some("abc") );
+        assert_eq!(hdr.client_id.as_deref(), Some("abc"));
         let tags = hdr.tags.unwrap();
         assert_eq!(tags.len(), 2);
         assert_eq!(tags[0].tag, 1);
