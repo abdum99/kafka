@@ -1,10 +1,11 @@
-use crate::common::{api::{api_key, api_version_entry::ApiVersionEntry}, error::error_code, types::CompactArray, EncodeToBytes};
+use crate::common::{api::{api_key, api_version_entry::ApiVersionEntry}, error::error_code, response::describe_topic_partitions::DescribeTopicPartitionsResponse, types::CompactArray, EncodeToBytes};
 
 // TODO: probably best as a builder but for later
 #[derive(Debug)]
 pub enum KafResponseBody {
     Unsupported(UnsupportedResponse),
     ApiVersions(ApiVersionsResponse),
+    DescribeTopicPartitions(DescribeTopicPartitionsResponse)
 }
 
 impl Default for KafResponseBody {
