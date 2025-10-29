@@ -12,6 +12,11 @@ pub fn read_exact<'a>(input: &'a [u8], off: &mut usize, n: usize) -> Result<&'a 
     Ok(s)
 }
 
+pub fn read_u8_be(input: &[u8], off: &mut usize) -> Result<u8, EncodingError> {
+    let b = read_exact(input, off, 1)?;
+    Ok(u8::from_be_bytes([b[0]]))
+}
+
 pub fn read_i16_be(input: &[u8], off: &mut usize) -> Result<i16, EncodingError> {
     let b = read_exact(input, off, 2)?;
     Ok(i16::from_be_bytes([b[0], b[1]]))
@@ -47,6 +52,13 @@ pub fn read_unsigned_varint(input: &[u8], off: &mut usize) -> Result<u32, Encodi
         }
     }
     Err(EncodingError::VarIntTooLong)
+}
+
+pub fn read_string_exact(input: &[u8], off: &mut usize, length: u32) -> Result<String, EncodingError> {
+    let bytes = read_exact(input, off, length as usize)?;
+    str::from_utf8(bytes)
+        .map(ToString::to_string)
+        .map_err(Into::into)
 }
 
 /// NULLABLE_STRING: INT16 length; -1 => null; else length bytes UTF-8

@@ -1,4 +1,4 @@
-use crate::{common::{EncodeToBytes, EncodingError}, utils::parse_primitive_types::{encode_unsigned_varint, read_unsigned_varint}, StrError};
+use crate::{common::{DecodeFromBytes, EncodeToBytes, EncodingError}, utils::parse_primitive_types::{encode_unsigned_varint, read_string_exact, read_unsigned_varint}, StrError};
 
 // TODO: @abdu
 // For this I should write ser::Serializer, call KafWireSerializer
@@ -25,6 +25,15 @@ impl EncodeToBytes for i32 {
     }
 }
 
+impl EncodeToBytes for bool {
+    fn encode_to_bytes(&self) -> Vec<u8> {
+        match self {
+            false => vec![0x0],
+            true => vec![0x1],
+        }
+    }
+}
+
 impl EncodeToBytes for Option<String> {
     fn encode_to_bytes(&self) -> Vec<u8> {
         let mut res = vec![];
@@ -45,12 +54,26 @@ impl EncodeToBytes for Option<String> {
     }
 }
 
-pub struct UnsignedVarInt {
-    pub val: u32
+impl<const L: usize> EncodeToBytes for [u8; L] {
+    fn encode_to_bytes(&self) -> Vec<u8> {
+        let mut res = vec![];
+        for i in 0..L {
+            res.push(self[i].to_be());
+        }
+        res
+    }
 }
 
-impl UnsignedVarInt {
-    fn read_from_bytes(input: &[u8], off: &mut usize) -> Result<UnsignedVarInt, EncodingError> {
+#[derive(Debug)]
+pub struct UnsignedVarInt {
+    pub val: u32, // TODO: This shouldn't be u32, it should u64 or [u8] if actually unbounded
+}
+
+impl DecodeFromBytes for UnsignedVarInt {
+    fn read_from_u8(
+        input: &[u8],
+        off: &mut usize,
+    ) -> Result<UnsignedVarInt, EncodingError> {
         Ok(UnsignedVarInt { val: read_unsigned_varint(input, off)? })
     }
 }
@@ -58,6 +81,21 @@ impl UnsignedVarInt {
 impl EncodeToBytes for UnsignedVarInt {
     fn encode_to_bytes(&self) -> Vec<u8> {
         encode_unsigned_varint(self.val)
+    }
+}
+
+
+#[derive(Debug)]
+pub struct CompactString {
+    pub val: String,
+}
+
+impl DecodeFromBytes for CompactString {
+    fn read_from_u8(input: &[u8], offset: &mut usize) -> Result<Self, EncodingError> {
+        let length: u32 = read_unsigned_varint(input, offset)?;
+        Ok(CompactString {
+            val: read_string_exact(input, offset, length - 1)?, // encoded as N + 1
+        })
     }
 }
 
@@ -101,3 +139,26 @@ impl<T> EncodeToBytes for CompactArray<T>
         res
     }
 }
+
+impl<T> DecodeFromBytes for CompactArray<T> 
+    where T: DecodeFromBytes
+{
+    fn read_from_u8(input: &[u8], offset: &mut usize) -> Result<Self, EncodingError> {
+        let length = UnsignedVarInt::read_from_u8(input, offset)?.val;
+
+        if length == 0 {
+            return Ok(CompactArray { items: None });
+        }
+
+        let mut items_arr: Vec<T> = vec![];
+
+        for _ in 0..length - 1 {
+            items_arr.push(T::read_from_u8(input, offset)?);
+        }
+
+        Ok(CompactArray {
+            items: Some(items_arr)
+        })
+    }
+}
+
